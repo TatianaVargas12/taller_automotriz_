@@ -1,0 +1,6 @@
+{
+  "name": "AutoTaller Pro",
+  "description": "Plataforma integral de gestión operativa, diagnóstico digital (DVI), bahías de servicio e inventario para talleres automotrices y flotas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
