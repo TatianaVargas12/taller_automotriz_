@@ -267,10 +267,10 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
               {/* Registered Vehicles */}
               <div className="pt-5 space-y-3">
                 <h3 className="text-sm font-semibold text-[#0F172A]">
-                  Unidades Registradas ({selectedCustomer.vehicles.length})
+                  Unidades Registradas ({(selectedCustomer.vehicles || []).length})
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {selectedCustomer.vehicles.map((veh) => (
+                  {(selectedCustomer.vehicles || []).map((veh) => (
                     <div
                       key={veh.id}
                       className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4 space-y-3"

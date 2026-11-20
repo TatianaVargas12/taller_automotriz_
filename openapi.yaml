@@ -1,0 +1,1889 @@
+openapi: 3.0.3
+info:
+  title: "Sistema de Gestión de Talleres Automotrices - API REST"
+  description: |
+    API REST del backend modular de gestión de talleres automotrices con autenticación basada en Laravel Sanctum y autorización RBAC.
+    
+    ### Reglas de Integridad Clave:
+    - **Clientes:** Documento único por tipo (`document_type`, `document_number`). Borrado lógico (Soft Deletes).
+    - **Vehículos:** Placa única en mayúsculas (`plate`). Odómetro no decreciente (reducción solo autorizada por Administrador).
+    - **Mecánicos:** Documento único de identificación (`document_number`).
+    - **Servicios:** Precios en `DECIMAL(12,2)` no negativos. Soft Deletes.
+    - **Órdenes:** Numeración secuencial atómica (`ORD-YYYY-XXXX`). Precondiciones para `EN_REPARACION` (mínimo 1 servicio y 1 mecánico activo). Entrega exclusivamente desde `FINALIZADA` (bloquea la orden en solo lectura). Cancelación obligatoria con motivo y solo antes de `FINALIZADA`.
+    - **Snapshot de precios:** Al agregar servicios a una orden, la tarifa unitaria se congela como snapshot inmutable.
+    - **Auditoría:** Registro de inicios/cierres de sesión, accesos denegados y mutaciones en `audit_logs` y `order_status_history`.
+  version: 1.0.0
+  contact:
+    name: Equipo de Ingeniería Backend
+    email: "soporte@autotaller.pro"
+servers:
+  - url: /api/v1
+    description: Servidor de Producción / Staging (v1)
+security:
+  - bearerAuth: {}
+tags:
+  - name: Autenticación
+    description: "Gestión de sesiones, tokens Bearer y perfiles con Laravel Sanctum"
+  - name: Clientes
+    description: CRUD de clientes con validación única compuesta y soft deletes
+  - name: Vehículos
+    description: "CRUD de vehículos, regla no regresiva de odómetro e historial"
+  - name: Mecánicos
+    description: Gestión de personal técnico operativo y estados de disponibilidad
+  - name: Servicios
+    description: "Catálogo de operaciones tarifadas con precisión DECIMAL(12,2)"
+  - name: Órdenes de Servicio
+    description: "Ciclo de vida, correlativo atómico, snapshots y máquina de estados"
+  - name: Salud
+    description: Health check y monitoreo del sistema
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Autenticación
+      summary: Inicio de sesión y emisión de token Bearer
+      description: |
+    Autentica credenciales de usuario y retorna un token Sanctum.
+    - Roles permitidos: Todos (Público).
+    - Credenciales inválidas devuelven **HTTP 401**.
+    - Cuenta inactiva devuelve **HTTP 403**.
+    - Cada intento (exitoso o fallido) queda registrado en `audit_logs`.
+      security: {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        200:
+          description: Autenticación exitosa.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Autenticación exitosa.
+                  data:
+                    $ref: "#/components/schemas/LoginResponseData"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /auth/logout:
+    post:
+      tags:
+        - Autenticación
+      summary: Cierre de sesión y revocación del token actual
+      description: |
+    Elimina el token Bearer en base de datos (`personal_access_tokens`). Peticiones posteriores con este token responden **HTTP 401**.
+    - Registra evento `logout` en `audit_logs`.
+      responses:
+        200:
+          description: Sesión cerrada exitosamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+  /auth/me:
+    get:
+      tags:
+        - Autenticación
+      summary: Consulta del perfil del usuario autenticado
+      description: Retorna la información del usuario en sesión con sus roles asignados y perfil técnico si aplica.
+      responses:
+        200:
+          description: Perfil obtenido.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/User"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+  /health:
+    get:
+      tags:
+        - Salud
+      summary: Health check del sistema y base de datos
+      description: Verifica la disponibilidad del servidor y la conexión a MySQL 8.4.
+      security: {}
+      responses:
+        200:
+          description: Sistema operativo.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+  /clients:
+    get:
+      tags:
+        - Clientes
+      summary: Listado paginado de clientes
+      description: |
+    Retorna la colección paginada de clientes activos. Excluye soft deletes por defecto.
+    - Roles permitidos: **Administrador**, **Recepcionista**.
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "Búsqueda por nombre, apellido, documento o teléfono"
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "Filtro por estado (active, inactive)"
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 15
+      responses:
+        200:
+          description: Listado obtenido con éxito.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiPaginatedSuccessResponse"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+    post:
+      tags:
+        - Clientes
+      summary: Creación de nuevo cliente
+      description: |
+    Registra un cliente validando la restricción `UNIQUE(document_type, document_number)`.
+    - Roles permitidos: **Administrador**, **Recepcionista**.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoreClientRequest"
+      responses:
+        201:
+          description: Cliente registrado exitosamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /clients/{client}:
+    get:
+      tags:
+        - Clientes
+      summary: Detalle de un cliente
+      description: |
+    Retorna el cliente con su flota de vehículos vinculada.
+    - Roles permitidos: **Administrador**, **Recepcionista**, **Cliente Final** (solo sus propios datos; ajenos retornan 403).
+      parameters:
+        - name: client
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID del cliente
+      responses:
+        200:
+          description: Detalle obtenido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        404:
+          $ref: "#/components/responses/NotFoundError"
+    put:
+      tags:
+        - Clientes
+      summary: Actualización de cliente
+      description: |
+    Actualiza datos personales y de contacto.
+    - Roles permitidos: **Administrador**, **Recepcionista**.
+      parameters:
+        - name: client
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClientRequest"
+      responses:
+        200:
+          description: Actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        422:
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      tags:
+        - Clientes
+      summary: Desactivación lógica (Soft Delete) de cliente
+      description: |
+    Aplica soft delete preservando la integridad referencial de órdenes históricas.
+    - Roles permitidos: **Administrador** exclusivamente (Recepcionista responde 403).
+      parameters:
+        - name: client
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Cliente desactivado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        404:
+          $ref: "#/components/responses/NotFoundError"
+  /vehicles:
+    get:
+      tags:
+        - Vehículos
+      summary: Listado paginado de vehículos
+      description: |
+    Retorna vehículos activos. Excluye soft deletes por defecto.
+    - Roles: **Administrador**, **Recepcionista**.
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: "Filtro por placa, marca o modelo"
+        - name: client_id
+          in: query
+          schema:
+            type: integer
+          description: Filtro por ID de propietario
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 15
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiPaginatedSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+    post:
+      tags:
+        - Vehículos
+      summary: Registro de vehículo con placa única
+      description: |
+    Registra un vehículo validando `UNIQUE(plate)`. La placa es normalizada a mayúsculas.
+    - Roles: **Administrador**, **Recepcionista**.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoreVehicleRequest"
+      responses:
+        201:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Recurso creado exitosamente.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /vehicles/{vehicle}:
+    get:
+      tags:
+        - Vehículos
+      summary: Detalle del vehículo
+      description: "Roles: Admin, Recepcionista, Cliente Final (solo sus vehículos)."
+      parameters:
+        - name: vehicle
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        404:
+          $ref: "#/components/responses/NotFoundError"
+    put:
+      tags:
+        - Vehículos
+      summary: Actualización de vehículo (Regla de kilometraje)
+      description: "Regla no regresiva: nuevo kilometraje no puede ser inferior al registrado. Disminuciones requieren `override_mileage = true` y rol **Administrador**."
+      parameters:
+        - name: vehicle
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVehicleRequest"
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        422:
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      tags:
+        - Vehículos
+      summary: Soft Delete de vehículo
+      description: "Roles: **Administrador**."
+      parameters:
+        - name: vehicle
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+  /vehicles/{vehicle}/history:
+    get:
+      tags:
+        - Vehículos
+      summary: Historial de órdenes e intervenciones del vehículo
+      description: "Roles: Admin, Recepcionista, Mecánico, Cliente Final (propio)."
+      parameters:
+        - name: vehicle
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiPaginatedSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+  /mechanics:
+    get:
+      tags:
+        - Mecánicos
+      summary: Listado de personal técnico
+      description: "Roles: Admin, Recepcionista."
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiPaginatedSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+    post:
+      tags:
+        - Mecánicos
+      summary: Registro de técnico operativo
+      description: "Roles: **Administrador** exclusivamente (Recepcionista responde 403). Documento de identidad único."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoreMechanicRequest"
+      responses:
+        201:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Recurso creado exitosamente.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /mechanics/{mechanic}:
+    get:
+      tags:
+        - Mecánicos
+      summary: Detalle del mecánico
+      parameters:
+        - name: mechanic
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+    put:
+      tags:
+        - Mecánicos
+      summary: Actualización de datos de mecánico
+      parameters:
+        - name: mechanic
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMechanicRequest"
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+    delete:
+      tags:
+        - Mecánicos
+      summary: Eliminación de mecánico
+      parameters:
+        - name: mechanic
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+  /mechanics/{mechanic}/status:
+    patch:
+      tags:
+        - Mecánicos
+      summary: Alternar disponibilidad del mecánico (is_active)
+      description: "Roles: **Administrador**."
+      parameters:
+        - name: mechanic
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - is_active
+              properties:
+                is_active:
+                  type: boolean
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /services:
+    get:
+      tags:
+        - Servicios
+      summary: Catálogo de servicios y operaciones tarifadas
+      description: "Roles: Autenticado. Precios en DECIMAL(12,2)."
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiPaginatedSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+    post:
+      tags:
+        - Servicios
+      summary: Alta de servicio en catálogo
+      description: "Roles: **Administrador** exclusivamente (Recepcionista recibe 403)."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoreServiceRequest"
+      responses:
+        201:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Recurso creado exitosamente.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /services/{service}:
+    get:
+      tags:
+        - Servicios
+      summary: Detalle de servicio tarifado
+      parameters:
+        - name: service
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+    put:
+      tags:
+        - Servicios
+      summary: Actualización de tarifa o descripción de servicio
+      description: Los cambios en catálogo no alteran órdenes pasadas debido al snapshot.
+      parameters:
+        - name: service
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateServiceRequest"
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+    delete:
+      tags:
+        - Servicios
+      summary: Soft Delete de servicio del catálogo
+      parameters:
+        - name: service
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+  /orders:
+    get:
+      tags:
+        - Órdenes de Servicio
+      summary: Listado paginado de órdenes
+      description: |
+    Mecánicos solo ven órdenes asignadas; Clientes solo ven sus órdenes.
+    Roles: Admin, Recepcionista, Mecánico, Cliente.
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 15
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiPaginatedSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+    post:
+      tags:
+        - Órdenes de Servicio
+      summary: "Apertura de orden con correlativo atómico ORD-YYYY-XXXX"
+      description: |
+    Abre una orden en estado inicial `PENDIENTE`. Rechaza odómetro inferior al del vehículo (422).
+    Roles: Admin, Recepcionista.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoreOrderRequest"
+      responses:
+        201:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Recurso creado exitosamente.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /orders/{order}:
+    get:
+      tags:
+        - Órdenes de Servicio
+      summary: Detalle completo de orden
+      description: "Incluye snapshots de servicios, mecánicos asignados y bitácora de estados."
+      parameters:
+        - name: order
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        404:
+          $ref: "#/components/responses/NotFoundError"
+    put:
+      tags:
+        - Órdenes de Servicio
+      summary: Actualización de notas o diagnóstico de orden
+      description: Rechaza con HTTP 422 si la orden ya se encuentra en estado ENTREGADA.
+      parameters:
+        - name: order
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                client_notes:
+                  type: string
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /orders/{order}/history:
+    get:
+      tags:
+        - Órdenes de Servicio
+      summary: Bitácora inmutable de transiciones de estado
+      description: "Consulta la secuencia histórica de estados con timestamps, motivos y autores."
+      parameters:
+        - name: order
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+  /orders/{order}/services:
+    post:
+      tags:
+        - Órdenes de Servicio
+      summary: Agregar servicio a la orden con snapshot inmutable
+      description: "Copia el precio unitario del catálogo y congela la línea en `order_services`. Rechaza servicios inactivos (422) y órdenes en `ENTREGADA` (422)."
+      parameters:
+        - name: order
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddOrderServiceRequest"
+      responses:
+        201:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Recurso creado exitosamente.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /orders/{order}/services/{orderService}:
+    delete:
+      tags:
+        - Órdenes de Servicio
+      summary: Eliminar línea de servicio de la orden
+      parameters:
+        - name: order
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: orderService
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /orders/{order}/mechanics:
+    post:
+      tags:
+        - Órdenes de Servicio
+      summary: Asignar mecánico a la orden
+      description: Rechaza técnicos inactivos (422) y técnicos ya asignados a la misma orden (422).
+      parameters:
+        - name: order
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignOrderMechanicRequest"
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /orders/{order}/mechanics/{mechanic}:
+    delete:
+      tags:
+        - Órdenes de Servicio
+      summary: Desvincular mecánico de la orden
+      parameters:
+        - name: order
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: mechanic
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+  /orders/{order}/transition:
+    post:
+      tags:
+        - Órdenes de Servicio
+      summary: Transición de estado en la máquina de estados
+      description: |
+    Avanza el estado de la orden.
+    - Transición a `EN_REPARACION`: Exige precondición de al menos 1 servicio y 1 mecánico activo (422 si falta alguno).
+    - Registra bitácora en `order_status_history`.
+      parameters:
+        - name: order
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransitionOrderStatusRequest"
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /orders/{order}/deliver:
+    post:
+      tags:
+        - Órdenes de Servicio
+      summary: Entrega formal del vehículo al cliente
+      description: |
+    REGLA ESTRICTA:
+    - Solo permitida si el estado actual es `FINALIZADA`. Cualquier otro estado responde **HTTP 422**.
+    - Al entregar, registra `delivered_at` y bloquea la orden en **solo lectura permanente**.
+      parameters:
+        - name: order
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeliverOrderRequest"
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /orders/{order}/cancel:
+    post:
+      tags:
+        - Órdenes de Servicio
+      summary: Cancelación justificada de orden
+      description: |
+    REGLA ESTRICTA:
+    - Exige motivo obligatorio de cancelación (mínimo 5 caracteres).
+    - Solo permitida desde estados previos a `FINALIZADA`. Si ya está finalizada o entregada, responde **HTTP 422**.
+      parameters:
+        - name: order
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelOrderRequest"
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessResponse"
+          description: Operación completada con éxito.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/ForbiddenError"
+        422:
+          $ref: "#/components/responses/ValidationError"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum API Token
+      description: "Token Bearer emitido por `/api/v1/auth/login`. Debe enviarse en el header: `Authorization: Bearer <token>`"
+  schemas:
+    ApiSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Operación completada exitosamente.
+        data:
+          type: object
+          nullable: true
+      required:
+        - success
+        - message
+    ApiPaginatedSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Listado obtenido con éxito.
+        data:
+          type: array
+          items:
+            type: object
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+      required:
+        - success
+        - message
+        - data
+        - meta
+    ApiErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Descripción del error.
+      required:
+        - success
+        - message
+    ApiValidationErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Los datos suministrados no son válidos.
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+      required:
+        - success
+        - message
+        - errors
+    PaginationMeta:
+      type: object
+      properties:
+        current_page:
+          type: integer
+          example: 1
+        last_page:
+          type: integer
+          example: 4
+        per_page:
+          type: integer
+          example: 15
+        total:
+          type: integer
+          example: 52
+      required:
+        - current_page
+        - last_page
+        - per_page
+        - total
+    Role:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Administrador
+        slug:
+          type: string
+          example: admin
+          enum:
+            - admin
+            - receptionist
+            - mechanic
+            - client
+        description:
+          type: string
+          nullable: true
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Carlos Administrador
+        email:
+          type: string
+          format: email
+          example: "admin@autotaller.pro"
+        status:
+          type: string
+          example: Activo
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/Role"
+        created_at:
+          type: string
+          format: "date-time"
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "admin@autotaller.pro"
+        password:
+          type: string
+          format: password
+          example: "AdminSecure2026!"
+        device_name:
+          type: string
+          example: "dashboard-web"
+          default: "api-client"
+    LoginResponseData:
+      type: object
+      properties:
+        token:
+          type: string
+          example: "1|abcdef1234567890sanctumtoken"
+        token_type:
+          type: string
+          example: Bearer
+        user:
+          $ref: "#/components/schemas/User"
+    Client:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        first_name:
+          type: string
+          example: Juan
+        last_name:
+          type: string
+          example: Pérez
+        full_name:
+          type: string
+          example: Juan Pérez
+        document_type:
+          type: string
+          example: CC
+          description: "Tipo de documento (CC, CE, NIT, PP, TI)"
+        document_number:
+          type: string
+          example: "1020304050"
+        phone:
+          type: string
+          example: "3001234567"
+        email:
+          type: string
+          format: email
+          nullable: true
+          example: "juan.perez@example.com"
+        address:
+          type: string
+          nullable: true
+          example: "Calle 100 #15-20"
+        status:
+          type: string
+          example: active
+        vehicles_count:
+          type: integer
+          example: 2
+        created_at:
+          type: string
+          format: "date-time"
+    StoreClientRequest:
+      type: object
+      required:
+        - first_name
+        - last_name
+        - document_type
+        - document_number
+        - phone
+      properties:
+        first_name:
+          type: string
+          maxLength: 100
+          example: Juan
+        last_name:
+          type: string
+          maxLength: 100
+          example: Pérez
+        document_type:
+          type: string
+          enum:
+            - CC
+            - CE
+            - NIT
+            - PP
+            - TI
+          example: CC
+        document_number:
+          type: string
+          maxLength: 50
+          example: "1020304050"
+        phone:
+          type: string
+          maxLength: 50
+          example: "3001234567"
+        email:
+          type: string
+          format: email
+          nullable: true
+          example: "juan.perez@example.com"
+        address:
+          type: string
+          nullable: true
+          maxLength: 255
+          example: "Calle 100 #15-20"
+    UpdateClientRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        document_type:
+          type: string
+          enum:
+            - CC
+            - CE
+            - NIT
+            - PP
+            - TI
+        document_number:
+          type: string
+          maxLength: 50
+        phone:
+          type: string
+          maxLength: 50
+        email:
+          type: string
+          format: email
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+    Vehicle:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        client_id:
+          type: integer
+          example: 1
+        plate:
+          type: string
+          example: ABC1234
+          description: Placa vehicular única normalizada en mayúsculas
+        brand:
+          type: string
+          example: Toyota
+        model:
+          type: string
+          example: Corolla
+        year:
+          type: integer
+          example: 2021
+        color:
+          type: string
+          nullable: true
+          example: Blanco
+        vin:
+          type: string
+          nullable: true
+          example: 9BWZZZ377VT004251
+        current_mileage:
+          type: integer
+          example: 45000
+          description: Kilometraje no decreciente
+        status:
+          type: string
+          example: active
+        client:
+          $ref: "#/components/schemas/Client"
+        created_at:
+          type: string
+          format: "date-time"
+    StoreVehicleRequest:
+      type: object
+      required:
+        - client_id
+        - plate
+        - brand
+        - model
+        - year
+        - current_mileage
+      properties:
+        client_id:
+          type: integer
+          example: 1
+        plate:
+          type: string
+          example: ABC1234
+        brand:
+          type: string
+          example: Toyota
+        model:
+          type: string
+          example: Corolla
+        year:
+          type: integer
+          minimum: 1950
+          example: 2021
+        color:
+          type: string
+          nullable: true
+          example: Blanco
+        vin:
+          type: string
+          nullable: true
+          example: 9BWZZZ377VT004251
+        current_mileage:
+          type: integer
+          minimum: 0
+          example: 45000
+    UpdateVehicleRequest:
+      type: object
+      properties:
+        brand:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+        color:
+          type: string
+        current_mileage:
+          type: integer
+          minimum: 0
+          description: No puede ser inferior al registrado salvo override_mileage
+        override_mileage:
+          type: boolean
+          default: false
+          description: Requiere rol Administrador
+        override_reason:
+          type: string
+          description: Obligatorio si override_mileage es true
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+    Mechanic:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          nullable: true
+          example: 3
+        first_name:
+          type: string
+          example: Mario
+        last_name:
+          type: string
+          example: Rossi
+        name:
+          type: string
+          example: Mario Rossi
+        document_type:
+          type: string
+          example: CC
+        document_number:
+          type: string
+          example: "79123456"
+        phone:
+          type: string
+          nullable: true
+          example: "3119876543"
+        specialty:
+          type: string
+          example: Mecánica Rápida y Frenos
+        is_active:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: "date-time"
+    StoreMechanicRequest:
+      type: object
+      required:
+        - document_type
+        - document_number
+      properties:
+        user_id:
+          type: integer
+          nullable: true
+        first_name:
+          type: string
+          example: Mario
+        last_name:
+          type: string
+          example: Rossi
+        name:
+          type: string
+          example: Mario Rossi
+        document_type:
+          type: string
+          example: CC
+        document_number:
+          type: string
+          example: "79123456"
+        phone:
+          type: string
+          nullable: true
+          example: "3119876543"
+        specialty:
+          type: string
+          nullable: true
+          example: Electricidad Automotriz
+        is_active:
+          type: boolean
+          default: true
+    UpdateMechanicRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        phone:
+          type: string
+        specialty:
+          type: string
+        is_active:
+          type: boolean
+    Service:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Cambio de Aceite Sintético y Filtro
+        description:
+          type: string
+          nullable: true
+          example: "Incluye aceite 5W-30 y filtro de primer equipo"
+        category:
+          type: string
+          nullable: true
+          example: Mantenimiento Preventivo
+        base_price:
+          type: number
+          format: float
+          example: 75.5
+          description: "Monto exacto en DECIMAL(12,2)"
+        status:
+          type: string
+          example: Activo
+        created_at:
+          type: string
+          format: "date-time"
+    StoreServiceRequest:
+      type: object
+      required:
+        - name
+        - base_price
+      properties:
+        name:
+          type: string
+          maxLength: 150
+          example: Alineación y Balanceo Láser
+        description:
+          type: string
+          nullable: true
+          maxLength: 500
+        category:
+          type: string
+          nullable: true
+          maxLength: 60
+          example: Suspensión y Dirección
+        base_price:
+          type: number
+          minimum: 0
+          example: 45
+        status:
+          type: string
+          enum:
+            - Activo
+            - Inactivo
+          default: Activo
+    UpdateServiceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 150
+        description:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        base_price:
+          type: number
+          minimum: 0
+        status:
+          type: string
+          enum:
+            - Activo
+            - Inactivo
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        order_number:
+          type: string
+          example: "ORD-2026-0001"
+          description: Folio secuencial atómico único
+        vehicle_id:
+          type: integer
+          example: 1
+        client_id:
+          type: integer
+          example: 1
+        receptionist_id:
+          type: integer
+          nullable: true
+          example: 2
+        entry_mileage:
+          type: integer
+          example: 45500
+        status:
+          type: string
+          enum:
+            - PENDIENTE
+            - EN_DIAGNOSTICO
+            - EN_REPARACION
+            - EN_ESPERA_APROBACION
+            - FINALIZADA
+            - ENTREGADA
+            - CANCELADA
+          example: PENDIENTE
+        subtotal:
+          type: number
+          example: 120
+        tax:
+          type: number
+          example: 22.8
+        total:
+          type: number
+          example: 142.8
+        client_notes:
+          type: string
+          nullable: true
+          example: Ruido anormal en tren delantero
+        entry_at:
+          type: string
+          format: "date-time"
+        delivered_at:
+          type: string
+          format: "date-time"
+          nullable: true
+        vehicle:
+          $ref: "#/components/schemas/Vehicle"
+        client:
+          $ref: "#/components/schemas/Client"
+        services:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderServiceLine"
+        mechanics:
+          type: array
+          items:
+            $ref: "#/components/schemas/Mechanic"
+    OrderServiceLine:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        service_id:
+          type: integer
+          example: 1
+        service_name:
+          type: string
+          example: Cambio de Aceite Sintético
+        quantity:
+          type: integer
+          example: 1
+        unit_price:
+          type: number
+          example: 75.5
+          description: Snapshot inmutable de tarifa
+        subtotal:
+          type: number
+          example: 75.5
+        notes:
+          type: string
+          nullable: true
+    OrderStatusHistory:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        order_id:
+          type: integer
+          example: 1
+        from_status:
+          type: string
+          nullable: true
+          example: PENDIENTE
+        to_status:
+          type: string
+          example: EN_DIAGNOSTICO
+        reason:
+          type: string
+          nullable: true
+          example: Ingreso del vehículo al elevador 2
+        changed_by:
+          type: integer
+          nullable: true
+          example: 2
+        created_at:
+          type: string
+          format: "date-time"
+    StoreOrderRequest:
+      type: object
+      required:
+        - vehicle_id
+        - entry_mileage
+      properties:
+        vehicle_id:
+          type: integer
+          example: 1
+        entry_mileage:
+          type: integer
+          minimum: 0
+          example: 45500
+          description: No puede ser menor al kilometraje del vehículo
+        client_notes:
+          type: string
+          nullable: true
+          maxLength: 1000
+          example: Revisar frenos traseros
+        estimated_delivery_date:
+          type: string
+          format: "date-time"
+          nullable: true
+        allow_lower_mileage:
+          type: boolean
+          default: false
+          description: Solo permitido para rol Administrador
+        mileage_correction_reason:
+          type: string
+          description: Obligatorio si allow_lower_mileage es true
+    AddOrderServiceRequest:
+      type: object
+      required:
+        - service_id
+        - quantity
+      properties:
+        service_id:
+          type: integer
+          example: 1
+        quantity:
+          type: integer
+          minimum: 1
+          example: 1
+        notes:
+          type: string
+          nullable: true
+    AssignOrderMechanicRequest:
+      type: object
+      required:
+        - mechanic_id
+      properties:
+        mechanic_id:
+          type: integer
+          example: 1
+          description: Debe ser un mecánico activo y no asignado previamente
+        role_description:
+          type: string
+          nullable: true
+          example: Mecánico Principal
+    TransitionOrderStatusRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - PENDIENTE
+            - EN_DIAGNOSTICO
+            - EN_REPARACION
+            - EN_ESPERA_APROBACION
+            - FINALIZADA
+          example: EN_REPARACION
+        to_status:
+          type: string
+          enum:
+            - PENDIENTE
+            - EN_DIAGNOSTICO
+            - EN_REPARACION
+            - EN_ESPERA_APROBACION
+            - FINALIZADA
+        reason:
+          type: string
+          nullable: true
+          example: Presupuesto aprobado por el cliente
+    DeliverOrderRequest:
+      type: object
+      properties:
+        notes:
+          type: string
+          nullable: true
+          example: Vehículo entregado a conformidad
+    CancelOrderRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          minLength: 5
+          example: Cliente cancela por viaje
+        cancellation_reason:
+          type: string
+          minLength: 5
+  responses:
+    UnauthorizedError:
+      description: No autenticado o token inválido/expirado (HTTP 401).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiErrorResponse"
+          example:
+            success: false
+            message: No autenticado.
+    ForbiddenError:
+      description: Permisos insuficientes para realizar la acción (HTTP 403).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiErrorResponse"
+          example:
+            success: false
+            message: No tiene permisos para realizar esta acción.
+    NotFoundError:
+      description: El recurso solicitado no fue encontrado o fue eliminado (HTTP 404).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiErrorResponse"
+          example:
+            success: false
+            message: Recurso no encontrado.
+    ValidationError:
+      description: Error de validación semántica en la solicitud (HTTP 422).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiValidationErrorResponse"
+          example:
+            success: false
+            message: Los datos proporcionados no son válidos.
+            errors:
+              plate:
+                - La placa ya se encuentra registrada en el sistema.

@@ -4,29 +4,45 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Clock,
+  LogOut,
   Pause,
   Play,
+  Plus,
   Wrench,
 } from 'lucide-react';
 import {
+  Customer,
   ServiceBay,
   Technician,
   WorkOrder,
   WorkOrderStatus,
 } from '../types/workshop';
 import { StatusBadge } from '../components/StatusBadge';
+import { AssignBayModal } from '../components/AssignBayModal';
 import { computeOrderTotals, formatCurrency, formatTimer } from '../utils/formatters';
 
 interface OperationsViewProps {
   workOrders: WorkOrder[];
   bays: ServiceBay[];
   technicians: Technician[];
+  customers: Customer[];
   shopFloorMode: boolean;
   onSelectOrder: (orderId: string) => void;
   onOpenDvi: (orderId: string) => void;
   onToggleTimer: (orderId: string) => void;
   onUpdateStatus: (orderId: string, status: WorkOrderStatus) => void;
   onAssignOrderToBay: (orderId: string, bayId: string, techId: string) => void;
+  onQuickIntakeAndAssign?: (
+    bayId: string,
+    techId: string,
+    plate: string,
+    vehicle: string,
+    customerId: string,
+    customerName: string,
+    issue: string,
+    priority: WorkOrder['priority']
+  ) => void;
+  onReleaseBay?: (bayId: string) => void;
 }
 
 const KANBAN_STAGES: WorkOrderStatus[] = [
@@ -41,14 +57,18 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
   workOrders,
   bays,
   technicians,
+  customers,
   shopFloorMode,
   onSelectOrder,
   onOpenDvi,
   onToggleTimer,
   onUpdateStatus,
   onAssignOrderToBay,
+  onQuickIntakeAndAssign,
+  onReleaseBay,
 }) => {
   const [boardMode, setBoardMode] = useState<'bays' | 'kanban'>('bays');
+  const [assignModalBay, setAssignModalBay] = useState<ServiceBay | null>(null);
   const [assigningBayId, setAssigningBayId] = useState<string | null>(null);
   const [selectedOrderForBay, setSelectedOrderForBay] = useState<string>('');
   const [selectedTechForBay, setSelectedTechForBay] = useState<string>(technicians[0]?.id || '');
@@ -111,7 +131,7 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
               {occupiedBays}/{bays.length}
             </span>
             <span className="text-xs font-medium text-[#16A34A] font-mono tnum">
-              {Math.round((occupiedBays / bays.length) * 100)}% capacidad
+              {bays.length > 0 ? Math.round((occupiedBays / bays.length) * 100) : 0}% capacidad
             </span>
           </div>
         </div>
@@ -208,7 +228,7 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
                         {bay.code}
                       </span>
                       <span className="text-sm font-semibold text-[#0F172A] truncate">
-                        {bay.name.replace(`${bay.code} · `, '').replace(/Bahía \d+ · /, '')}
+                        {bay.name?.replace(`${bay.code} · `, '').replace(/Bahía \d+ · /, '') || bay.name}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-[#64748B] truncate">
@@ -322,6 +342,15 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
                           <ClipboardCheck className="w-3.5 h-3.5" />
                           DVI
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => setAssignModalBay(bay)}
+                          title="Gestionar asignación o liberar bahía"
+                          className={`${btnHeight} px-2.5 rounded-lg border border-[#E2E8F0] hover:border-amber-400 hover:bg-amber-50 text-[#64748B] hover:text-amber-700 text-xs font-semibold inline-flex items-center gap-1 transition-colors`}
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          <span className="hidden xl:inline">Liberar</span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -388,13 +417,26 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
                         ) : (
                           <div className="text-xs text-[#64748B] py-2">
                             No hay órdenes pendientes en patio sin bahía asignada.
-                            <button
-                              type="button"
-                              onClick={() => setAssigningBayId(null)}
-                              className="block mt-2 text-[#2563EB] font-semibold"
-                            >
-                              Volver
-                            </button>
+                            <div className="mt-2 flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAssigningBayId(null);
+                                  setAssignModalBay(bay);
+                                }}
+                                className="text-[#2563EB] font-bold hover:underline"
+                              >
+                                + Ingreso Rápido a Bahía
+                              </button>
+                              <span>·</span>
+                              <button
+                                type="button"
+                                onClick={() => setAssigningBayId(null)}
+                                className="text-[#64748B] font-semibold"
+                              >
+                                Volver
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -413,16 +455,26 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
                               : 'Listo para recepción inmediata'}
                           </p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAssigningBayId(bay.id);
-                            setSelectedOrderForBay(unassignedOrders[0]?.id || '');
-                          }}
-                          className={`${btnHeight} px-4 rounded-lg border border-[#E2E8F0] bg-white hover:bg-[#F8FAFC] text-xs font-semibold text-[#0F172A] transition-colors`}
-                        >
-                          Asignar Vehículo
-                        </button>
+                        <div className="flex flex-col gap-2 w-full pt-2">
+                          <button
+                            type="button"
+                            onClick={() => setAssignModalBay(bay)}
+                            className={`${btnHeight} w-full rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2`}
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>Asignar Vehículo a Bahía</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAssigningBayId(bay.id);
+                              setSelectedOrderForBay(unassignedOrders[0]?.id || '');
+                            }}
+                            className="text-[11px] text-[#64748B] hover:text-[#2563EB] font-semibold py-1 transition-colors"
+                          >
+                            Asignación rápida inline
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -492,7 +544,7 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
 
                           <div className="flex items-center justify-between text-xs pt-2 border-t border-[#E2E8F0]">
                             <span className="text-[#64748B] truncate">
-                              {tech ? tech.initials + ' · ' + tech.name.split(' ')[0] : 'Sin asignar'}
+                              {tech ? `${tech.initials} · ${tech.name ? tech.name.split(' ')[0] : ''}` : 'Sin asignar'}
                             </span>
                             <span className="font-mono tnum font-semibold text-[#0F172A]">
                               {formatCurrency(total)}
@@ -532,6 +584,52 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
             );
           })}
         </div>
+      )}
+
+      {/* Assign Bay Modal */}
+      {assignModalBay && (
+        <AssignBayModal
+          open={Boolean(assignModalBay)}
+          bay={assignModalBay}
+          workOrders={workOrders}
+          technicians={technicians}
+          customers={customers}
+          onClose={() => setAssignModalBay(null)}
+          onAssignOrder={(orderId, bayId, techId) => {
+            onAssignOrderToBay(orderId, bayId, techId);
+            setAssignModalBay(null);
+          }}
+          onQuickIntakeAndAssign={(
+            bayId,
+            techId,
+            plate,
+            vehicle,
+            customerId,
+            customerName,
+            issue,
+            priority
+          ) => {
+            if (onQuickIntakeAndAssign) {
+              onQuickIntakeAndAssign(
+                bayId,
+                techId,
+                plate,
+                vehicle,
+                customerId,
+                customerName,
+                issue,
+                priority
+              );
+            }
+            setAssignModalBay(null);
+          }}
+          onReleaseBay={(bayId) => {
+            if (onReleaseBay) {
+              onReleaseBay(bayId);
+            }
+            setAssignModalBay(null);
+          }}
+        />
       )}
     </div>
   );

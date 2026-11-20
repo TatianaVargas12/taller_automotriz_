@@ -13,7 +13,8 @@ export type ScreenRoute =
   | 'orders'
   | 'dvi'
   | 'inventory'
-  | 'customers';
+  | 'customers'
+  | 'profile';
 
 export interface Technician {
   id: string;

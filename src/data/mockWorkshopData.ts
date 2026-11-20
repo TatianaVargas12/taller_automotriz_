@@ -318,6 +318,203 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
 
 export const INITIAL_WORK_ORDERS: WorkOrder[] = [
   {
+    id: '#1042',
+    code: 'OT-1042',
+    plate: '4821 LKM',
+    vin: 'VSSZZZ5FZKR048219',
+    vehicle: 'Seat León 1.5 TSI',
+    mileageKm: 42100,
+    fuelLevel: 80,
+    customerId: 'cust-figma-1',
+    customerName: 'Javier Martín',
+    customerType: 'Particular',
+    customerPhone: '+34 611 234 567',
+    status: 'En Reparación',
+    priority: 'Normal',
+    bayId: 'bay-2',
+    technicianId: 'tech-1',
+    advisorName: 'Pablo',
+    intakeDate: '2026-11-16 09:30',
+    estimatedCompletion: 'Hoy · 13:00',
+    elapsedSeconds: 3600,
+    timerRunning: true,
+    reportedIssue: 'Cambio de aceite y filtros programado.',
+    diagnosticNotes: 'Mantenimiento preventivo de 40.000 km. Sustitución de aceite sintético 5W-30, filtro de aceite y filtro de habitáculo.',
+    checklistTasks: [
+      { id: 't-1042-1', label: 'Drenaje de aceite motor', done: true },
+      { id: 't-1042-2', label: 'Sustitución de filtro de aceite', done: true },
+      { id: 't-1042-3', label: 'Relleno de lubricante 5W-30 4.2L', done: false },
+      { id: 't-1042-4', label: 'Revisión de niveles y presiones', done: false },
+    ],
+    dviItems: [],
+    laborLines: [
+      { id: 'l-1042-1', description: 'Servicio de cambio de aceite y filtro', standardHours: 1.0, hourlyRate: 65.0, technicianName: 'Pablo' }
+    ],
+    partLines: [
+      { id: 'p-1042-1', sku: 'OIL-MOB-5W30', name: 'Aceite Sintético 5W-30 (5L)', quantity: 1, unitPrice: 68.0, inventorySourceId: 'inv-3' },
+      { id: 'p-1042-2', sku: 'FLT-MANN-719', name: 'Filtro de Aceite', quantity: 1, unitPrice: 18.5, inventorySourceId: 'inv-4' }
+    ],
+    taxRatePct: 21,
+    subtotal: 151.5,
+    taxTotal: 31.81,
+    total: 183.31
+  },
+  {
+    id: '#1043',
+    code: 'OT-1043',
+    plate: '7193 JTR',
+    vin: 'VF15R240E59102847',
+    vehicle: 'Renault Clio 0.9 TCe',
+    mileageKm: 68900,
+    fuelLevel: 45,
+    customerId: 'cust-figma-2',
+    customerName: 'Lucía García',
+    customerType: 'Particular',
+    customerPhone: '+34 622 345 678',
+    status: 'En Diagnóstico',
+    priority: 'Normal',
+    bayId: 'bay-1',
+    technicianId: 'tech-2',
+    advisorName: 'Marcos',
+    intakeDate: '2026-11-16 10:15',
+    estimatedCompletion: 'Por confirmar',
+    elapsedSeconds: 1800,
+    timerRunning: false,
+    reportedIssue: 'Testigo de motor encendido en cuadro.',
+    diagnosticNotes: 'Diagnosis electrónica: fallo en sonda lambda banco 1 y mezcla rica en ralentí.',
+    checklistTasks: [
+      { id: 't-1043-1', label: 'Lectura de códigos de avería OBD-II', done: true },
+      { id: 't-1043-2', label: 'Comprobación de cableado y señal de sonda', done: false }
+    ],
+    dviItems: [],
+    laborLines: [
+      { id: 'l-1043-1', description: 'Diagnóstico electrónico computarizado', standardHours: 0.8, hourlyRate: 65.0, technicianName: 'Marcos' }
+    ],
+    partLines: [],
+    taxRatePct: 21,
+    subtotal: 52.0,
+    taxTotal: 10.92,
+    total: 62.92
+  },
+  {
+    id: '#1044',
+    code: 'OT-1044',
+    plate: '2356 KPB',
+    vin: 'WF0KXXGCEK2356019',
+    vehicle: 'Ford Focus 1.5 TDCi',
+    mileageKm: 148200,
+    fuelLevel: 30,
+    customerId: 'cust-figma-3',
+    customerName: 'Ana López',
+    customerType: 'Particular',
+    customerPhone: '+34 633 456 789',
+    status: 'En Espera (Repuestos)',
+    priority: 'Alta',
+    bayId: 'bay-3',
+    technicianId: 'tech-1',
+    advisorName: 'Pablo',
+    intakeDate: '2026-11-16 08:45',
+    estimatedCompletion: 'Por confirmar',
+    elapsedSeconds: 5400,
+    timerRunning: false,
+    reportedIssue: 'Sustitución de embrague. Patina en aceleraciones en marcha alta.',
+    diagnosticNotes: 'Presupuesto enviado por 680,00 €. Esperando confirmación del cliente.',
+    checklistTasks: [
+      { id: 't-1044-1', label: 'Desmontaje de caja de cambios', done: true },
+      { id: 't-1044-2', label: 'Comprobación de volante bimasa', done: true }
+    ],
+    dviItems: [],
+    laborLines: [
+      { id: 'l-1044-1', description: 'Mano de obra kit de embrague y volante', standardHours: 4.5, hourlyRate: 65.0, technicianName: 'Pablo' }
+    ],
+    partLines: [
+      { id: 'p-1044-1', sku: 'CLT-LUK-2356', name: 'Kit Embrague + Volante Bimasa LuK', quantity: 1, unitPrice: 387.5, inventorySourceId: 'inv-8' }
+    ],
+    taxRatePct: 21,
+    subtotal: 680.0,
+    taxTotal: 142.8,
+    total: 822.8
+  },
+  {
+    id: '#1045',
+    code: 'OT-1045',
+    plate: '8902 HNB',
+    vin: 'WVWZZZAUZHP890234',
+    vehicle: 'VW Golf 2.0 TDI',
+    mileageKm: 98400,
+    fuelLevel: 60,
+    customerId: 'cust-figma-4',
+    customerName: 'Carlos Ruiz',
+    customerType: 'Particular',
+    customerPhone: '+34 644 567 890',
+    status: 'Finalizada/Entregada',
+    priority: 'Normal',
+    bayId: 'bay-4',
+    technicianId: 'tech-2',
+    advisorName: 'Marcos',
+    intakeDate: '2026-11-16 09:00',
+    estimatedCompletion: 'Hoy · 12:30',
+    elapsedSeconds: 4200,
+    timerRunning: false,
+    reportedIssue: 'Pastillas y discos delanteros.',
+    diagnosticNotes: 'Trabajo completado. Prueba de frenada OK. Cliente avisado para entrega a las 12:30.',
+    checklistTasks: [
+      { id: 't-1045-1', label: 'Sustitución discos y pastillas delanteras', done: true },
+      { id: 't-1045-2', label: 'Purga de líquido de frenos DOT 4', done: true },
+      { id: 't-1045-3', label: 'Prueba en frenómetro', done: true }
+    ],
+    dviItems: [],
+    laborLines: [
+      { id: 'l-1045-1', description: 'Sustitución discos y pastillas eje delantero', standardHours: 1.5, hourlyRate: 65.0, technicianName: 'Marcos' }
+    ],
+    partLines: [
+      { id: 'p-1045-1', sku: 'BRK-BREM-4420', name: 'Juego Pastillas Delanteras Brembo', quantity: 1, unitPrice: 124.0, inventorySourceId: 'inv-1' },
+      { id: 'p-1045-2', sku: 'BRK-ATE-8812', name: 'Discos Ventilados 330mm', quantity: 1, unitPrice: 248.0, inventorySourceId: 'inv-2' }
+    ],
+    taxRatePct: 21,
+    subtotal: 469.5,
+    taxTotal: 98.59,
+    total: 568.09
+  },
+  {
+    id: '#1046',
+    code: 'OT-1046',
+    plate: '5640 MFC',
+    vin: 'VF3CCHMZ6LT564019',
+    vehicle: 'Peugeot 208 1.2 PureTech',
+    mileageKm: 31200,
+    fuelLevel: 75,
+    customerId: 'cust-figma-5',
+    customerName: 'Elena Torres',
+    customerType: 'Particular',
+    customerPhone: '+34 655 678 901',
+    status: 'En Diagnóstico',
+    priority: 'Normal',
+    bayId: 'bay-5',
+    technicianId: 'tech-1',
+    advisorName: 'Pablo',
+    intakeDate: '2026-11-16 11:00',
+    estimatedCompletion: 'Por confirmar',
+    elapsedSeconds: 900,
+    timerRunning: true,
+    reportedIssue: 'Ruido en la suspensión al pasar por baches en tren delantero.',
+    diagnosticNotes: 'Inspección de copelas y silentblocks del trapecio delantero izquierdo.',
+    checklistTasks: [
+      { id: 't-1046-1', label: 'Prueba en fosa de holguras de suspensión', done: true },
+      { id: 't-1046-2', label: 'Revisión de bieletas de barra estabilizadora', done: false }
+    ],
+    dviItems: [],
+    laborLines: [
+      { id: 'l-1046-1', description: 'Inspección y diagnóstico de tren delantero', standardHours: 0.6, hourlyRate: 65.0, technicianName: 'Pablo' }
+    ],
+    partLines: [],
+    taxRatePct: 21,
+    subtotal: 39.0,
+    taxTotal: 8.19,
+    total: 47.19
+  },
+
+  {
     id: 'wo-1',
     code: 'OT-2048',
     plate: '8492-KLM',

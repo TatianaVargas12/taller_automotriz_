@@ -2,13 +2,16 @@ import React from 'react';
 import {
   ClipboardCheck,
   LayoutDashboard,
+  LogOut,
   Package,
   PanelLeftClose,
   PanelLeftOpen,
+  User,
   Users,
   Wrench,
 } from 'lucide-react';
 import { ScreenRoute } from '../types/workshop';
+import { AuthUser } from '../types/auth';
 
 interface SidebarProps {
   activeScreen: ScreenRoute;
@@ -20,6 +23,8 @@ interface SidebarProps {
     pendingDvi: number;
     lowStock: number;
   };
+  currentUser: AuthUser | null;
+  onLogout: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -28,6 +33,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   collapsed,
   onToggleCollapse,
   counts,
+  currentUser,
+  onLogout,
 }) => {
   const navItems: {
     id: ScreenRoute;
@@ -150,29 +157,75 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           );
         })}
+        {/* Mi Cuenta / Perfil de Operario */}
+        <div className="pt-2 mt-2 border-t border-slate-800/80">
+          <button
+            type="button"
+            onClick={() => onNavigate('profile')}
+            title={collapsed ? 'Ver Mi Perfil' : undefined}
+            className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+              activeScreen === 'profile'
+                ? 'bg-[#2563EB] text-white'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+            }`}
+          >
+            <span className="flex items-center gap-3 min-w-0">
+              <User className="w-4 h-4 shrink-0 text-blue-400" />
+              {!collapsed && <span className="truncate">Ver Mi Perfil</span>}
+            </span>
+            {!collapsed && (
+              <span className="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-mono">
+                {currentUser?.initials || 'ID'}
+              </span>
+            )}
+          </button>
+        </div>
       </nav>
 
-      {/* Supervisor Profile Footer */}
+      {/* User Session Profile Footer */}
       <div className="p-3 border-t border-slate-800/90">
-        <div
-          className={`flex items-center gap-3 p-2 rounded-lg bg-slate-900/80 ${
-            collapsed ? 'justify-center' : ''
-          }`}
-        >
-          <div className="w-8 h-8 rounded-full bg-[#1D4ED8] text-white text-xs font-bold flex items-center justify-center shrink-0">
-            LG
+        {currentUser && (
+          <div
+            className={`flex items-center gap-3 p-2 rounded-lg bg-slate-900/80 border border-slate-800 ${
+              collapsed ? 'justify-center' : 'justify-between'
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => onNavigate('profile')}
+              title="Ver Mi Perfil"
+              className="flex items-center gap-2.5 min-w-0 text-left hover:opacity-90 transition-opacity cursor-pointer group"
+            >
+              <div
+                className="w-8 h-8 rounded-full text-white text-xs font-bold flex items-center justify-center shrink-0 shadow-sm group-hover:ring-2 group-hover:ring-blue-400 transition-all"
+                style={{ backgroundColor: currentUser.avatarColor || '#1D4ED8' }}
+              >
+                {currentUser.initials}
+              </div>
+              {!collapsed && (
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-white truncate group-hover:text-blue-300 transition-colors">
+                    {currentUser.name}
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">
+                    {currentUser.roleLabel}
+                  </p>
+                </div>
+              )}
+            </button>
+
+            {!collapsed && (
+              <button
+                type="button"
+                onClick={onLogout}
+                title="Cerrar sesión"
+                className="p-1.5 rounded-md text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
           </div>
-          {!collapsed && (
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-white truncate">
-                Laura Giménez
-              </p>
-              <p className="text-[11px] text-slate-400 truncate">
-                Jefa de Servicio
-              </p>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </aside>
   );

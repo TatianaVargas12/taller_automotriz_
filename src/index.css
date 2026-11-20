@@ -1,21 +1,31 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-condensed: "Barlow Condensed", -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 @layer base {
+
   html,
   body {
-    font-family: var(--font-sans);
-    background-color: #f8fafc;
-    color: #0f172a;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background-color: #f3f1ea;
+    color: #242720;
   }
 
   .tnum {
     font-variant-numeric: tabular-nums;
   }
+}
+
+.font-condensed {
+  font-family: 'Barlow Condensed', -apple-system, sans-serif;
+}
+
+.font-body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 /* Custom subtle scrollbars for dense enterprise panels */
@@ -35,4 +45,112 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* 4 Porciones circulares separadas con hover flotante individual */
+.circle-portions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  position: relative;
+}
+
+.circle-portion {
+  position: relative;
+  background: radial-gradient(circle at center, #2e3329 0%, #242720 70%, #1b1d18 100%);
+  border: 2px solid #45483e;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.35s ease,
+              border-color 0.35s ease,
+              background-color 0.35s ease;
+  will-change: transform, box-shadow;
+  z-index: 1;
+}
+
+.portion-top-left {
+  border-top-left-radius: 100%;
+  border-top-right-radius: 16px;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 10px;
+  transform-origin: bottom right;
+}
+
+.portion-top-right {
+  border-top-right-radius: 100%;
+  border-top-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+  border-bottom-left-radius: 10px;
+  transform-origin: bottom left;
+}
+
+.portion-bottom-left {
+  border-bottom-left-radius: 100%;
+  border-top-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+  border-top-right-radius: 10px;
+  transform-origin: top right;
+}
+
+.portion-bottom-right {
+  border-bottom-right-radius: 100%;
+  border-top-right-radius: 16px;
+  border-bottom-left-radius: 16px;
+  border-top-left-radius: 10px;
+  transform-origin: top left;
+}
+
+.circle-portion:hover {
+  z-index: 10;
+  border-color: #be401f;
+  background: radial-gradient(circle at center, #353b2f 0%, #272a22 70%, #1d2019 100%);
+  box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.75),
+              0 0 25px rgba(190, 64, 31, 0.3);
+}
+
+.portion-top-left:hover {
+  transform: translate(-5px, -5px) scale(1.04);
+}
+
+.portion-top-right:hover {
+  transform: translate(5px, -5px) scale(1.04);
+}
+
+.portion-bottom-left:hover {
+  transform: translate(-5px, 5px) scale(1.04);
+}
+
+.portion-bottom-right:hover {
+  transform: translate(5px, 5px) scale(1.04);
+}
+
+/* Fallback legacy quadrant classes */
+.single-circle-quadrants {
+  position: relative;
+  background: radial-gradient(circle at 50% 50%, #2f342a 0%, #242720 55%, #1a1c17 100%);
+  border: 2px solid #45483e;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.4s ease,
+              border-color 0.4s ease;
+  will-change: transform, box-shadow;
+}
+
+.single-circle-quadrants:hover {
+  transform: scale(1.03) translateY(-4px);
+  border-color: #be401f;
+  box-shadow: 0 24px 40px -10px rgba(0, 0, 0, 0.8),
+              0 0 30px rgba(190, 64, 31, 0.22);
+}
+
+.quadrant-cell {
+  transition: background-color 0.3s ease;
+}
+
+.quadrant-cell:hover {
+  background-color: rgba(190, 64, 31, 0.08);
 }

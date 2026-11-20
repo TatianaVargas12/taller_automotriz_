@@ -48,14 +48,21 @@ const STATUS_STYLE_MAP: Record<
   },
 };
 
+const DEFAULT_STATUS_STYLE = {
+  bg: 'bg-[#eeeee6]',
+  text: 'text-[#62645c]',
+  dot: 'bg-[#62645c]',
+  shortLabel: 'Estado',
+};
+
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, compact = false }) => {
-  const cfg = STATUS_STYLE_MAP[status];
+  const cfg = STATUS_STYLE_MAP[status] || DEFAULT_STATUS_STYLE;
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold leading-[14px] tracking-[0.04em] uppercase whitespace-nowrap shrink-0 ${cfg.bg} ${cfg.text}`}
     >
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} aria-hidden="true" />
-      {compact ? cfg.shortLabel : status}
+      {compact ? cfg.shortLabel : (status || cfg.shortLabel)}
     </span>
   );
 };

@@ -209,7 +209,7 @@ export const WorkOrderDrawer: React.FC<WorkOrderDrawerProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E2E8F0]">
-                  {order.laborLines.map((l) => (
+                  {(order.laborLines || []).map((l) => (
                     <tr key={l.id}>
                       <td className="py-2.5 px-3 font-medium text-[#0F172A]">
                         [MO] {l.description}
@@ -225,7 +225,7 @@ export const WorkOrderDrawer: React.FC<WorkOrderDrawerProps> = ({
                       </td>
                     </tr>
                   ))}
-                  {order.partLines.map((p) => (
+                  {(order.partLines || []).map((p) => (
                     <tr key={p.id}>
                       <td className="py-2.5 px-3 font-medium text-[#0F172A]">
                         <span className="font-mono text-[#64748B] mr-1.5">
@@ -418,7 +418,7 @@ export const WorkOrderDrawer: React.FC<WorkOrderDrawerProps> = ({
                 </div>
 
                 <div className="border border-[#E2E8F0] rounded-lg overflow-hidden divide-y divide-[#E2E8F0]">
-                  {order.laborLines.map((line) => (
+                  {(order.laborLines || []).map((line) => (
                     <div
                       key={line.id}
                       className="px-3.5 py-2.5 flex items-center justify-between gap-3 text-xs bg-white"
@@ -507,9 +507,9 @@ export const WorkOrderDrawer: React.FC<WorkOrderDrawerProps> = ({
                   </span>
                 </div>
 
-                {order.partLines.length > 0 && (
+                {(order.partLines || []).length > 0 && (
                   <div className="border border-[#E2E8F0] rounded-lg overflow-hidden divide-y divide-[#E2E8F0]">
-                    {order.partLines.map((p) => (
+                    {(order.partLines || []).map((p) => (
                       <div
                         key={p.id}
                         className="px-3.5 py-2.5 flex items-center justify-between gap-3 text-xs bg-white"
@@ -546,7 +546,7 @@ export const WorkOrderDrawer: React.FC<WorkOrderDrawerProps> = ({
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    const item = inventory.find((i) => i.id === selectedInvId);
+                    const item = inventory.find((i) => i.id === selectedInvId) || inventory[0];
                     if (!item) return;
                     onAddPartFromInventory(
                       order.id,

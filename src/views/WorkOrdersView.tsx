@@ -53,11 +53,11 @@ export const WorkOrdersView: React.FC<WorkOrdersViewProps> = ({
       priorityFilter === 'Todas' || order.priority === priorityFilter;
     const matchesQuery =
       !effectiveSearch ||
-      order.code.toLowerCase().includes(effectiveSearch) ||
-      order.plate.toLowerCase().includes(effectiveSearch) ||
-      order.vin.toLowerCase().includes(effectiveSearch) ||
-      order.vehicle.toLowerCase().includes(effectiveSearch) ||
-      order.customerName.toLowerCase().includes(effectiveSearch);
+      order.code?.toLowerCase()?.includes(effectiveSearch) ||
+      order.plate?.toLowerCase()?.includes(effectiveSearch) ||
+      order.vin?.toLowerCase()?.includes(effectiveSearch) ||
+      order.vehicle?.toLowerCase()?.includes(effectiveSearch) ||
+      order.customerName?.toLowerCase()?.includes(effectiveSearch);
 
     return matchesStatus && matchesPriority && matchesQuery;
   });

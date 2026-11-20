@@ -17,16 +17,19 @@ export function formatTimer(totalSeconds: number): string {
 }
 
 export function computeOrderTotals(order: WorkOrder) {
-  const laborSubtotal = order.laborLines.reduce(
-    (sum, line) => sum + line.hours * line.hourlyRate,
+  const laborLines = order?.laborLines || [];
+  const partLines = order?.partLines || [];
+  const laborSubtotal = laborLines.reduce(
+    (sum, line) => sum + (line?.hours || 0) * (line?.hourlyRate || 0),
     0
   );
-  const partsSubtotal = order.partLines.reduce(
-    (sum, line) => sum + line.qty * line.unitPrice,
+  const partsSubtotal = partLines.reduce(
+    (sum, line) => sum + (line?.qty || 0) * (line?.unitPrice || 0),
     0
   );
   const subtotal = laborSubtotal + partsSubtotal;
-  const tax = subtotal * order.taxRate;
+  const taxRate = typeof order?.taxRate === 'number' ? order.taxRate : 0.21;
+  const tax = subtotal * taxRate;
   const total = subtotal + tax;
   return {
     laborSubtotal,

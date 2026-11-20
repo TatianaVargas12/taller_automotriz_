@@ -61,22 +61,22 @@ export const DviInspectionView: React.FC<DviInspectionViewProps> = ({
 
   if (!currentOrder) return null;
 
-  const dviItems = currentOrder.dviItems.filter(
+  const dviItems = currentOrder.dviItems || [];
+  const filteredItems = dviItems.filter(
     (item) => categoryFilter === 'Todos' || item.category === categoryFilter
   );
 
-  const passCount = currentOrder.dviItems.filter((i) => i.state === 'Pass').length;
-  const failCount = currentOrder.dviItems.filter((i) => i.state === 'Fail').length;
-  const naCount = currentOrder.dviItems.filter((i) => i.state === 'N/A').length;
+  const passCount = dviItems.filter((i) => i.state === 'Pass').length;
+  const failCount = dviItems.filter((i) => i.state === 'Fail').length;
+  const naCount = dviItems.filter((i) => i.state === 'N/A').length;
   const evaluatedCount = passCount + failCount + naCount;
-  const totalCount = currentOrder.dviItems.length;
+  const totalCount = dviItems.length;
 
-  const diagramItems = currentOrder.dviItems.filter((i) => i.diagramType);
+  const diagramItems = dviItems.filter((i) => i.diagramType);
   const touchBtnHeight = shopFloorMode ? 'h-12' : 'h-10';
 
   return (
     <div className="space-y-6">
-      {/* Vehicle Selector & DVI Summary Header */}
       <div className="bg-white rounded-xl border border-[#E2E8F0] p-5 shadow-[0_1px_2px_0_rgba(15,23,42,0.05)]">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -374,16 +374,20 @@ export const DviInspectionView: React.FC<DviInspectionViewProps> = ({
             </div>
 
             <div className="space-y-3">
-              {currentOrder.checklistTasks.map((task) => (
-                <label
+              {(currentOrder.checklistTasks || []).map((task) => (
+                <div
                   key={task.id}
+                  onClick={() => onToggleChecklistTask(currentOrder.id, task.id)}
                   className="flex items-start gap-3 cursor-pointer select-none group"
                 >
                   <button
                     type="button"
                     role="checkbox"
                     aria-checked={task.done}
-                    onClick={() => onToggleChecklistTask(currentOrder.id, task.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleChecklistTask(currentOrder.id, task.id);
+                    }}
                     className={`mt-0.5 w-5 h-5 rounded flex items-center justify-center shrink-0 transition-colors ${
                       task.done
                         ? 'bg-[#2563EB] border-[1.5px] border-[#2563EB] text-white'
@@ -401,7 +405,7 @@ export const DviInspectionView: React.FC<DviInspectionViewProps> = ({
                   >
                     {task.label}
                   </span>
-                </label>
+                </div>
               ))}
             </div>
           </div>

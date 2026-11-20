@@ -50,10 +50,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     const q = search.trim().toLowerCase();
     const matchesQuery =
       !q ||
-      item.sku.toLowerCase().includes(q) ||
-      item.name.toLowerCase().includes(q) ||
-      item.brand.toLowerCase().includes(q) ||
-      item.binLocation.toLowerCase().includes(q);
+      item.sku?.toLowerCase()?.includes(q) ||
+      item.name?.toLowerCase()?.includes(q) ||
+      item.brand?.toLowerCase()?.includes(q) ||
+      item.binLocation?.toLowerCase()?.includes(q);
     return matchesCat && matchesLow && matchesQuery;
   });
 
