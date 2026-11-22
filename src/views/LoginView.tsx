@@ -175,56 +175,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
               Entra con tus datos. Las cuentas de administración se dirigen al panel de gestión y los clientes a la web pública.
             </p>
 
-            {/* Tarjeta Destacada de Credenciales de Administrador */}
-            <div className="mb-6 bg-[#242720] text-[#f3f1ea] border-l-4 border-[#be401f] p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#be401f] animate-pulse"></span>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#be401f]">
-                    Credenciales de Administrador
-                  </span>
-                </div>
-                <span className="text-[10px] text-[#c1c3b7] uppercase font-mono tracking-widest bg-white/10 px-2 py-0.5">
-                  Acceso Gestión
-                </span>
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono bg-black/40 p-3 border border-white/10">
-                <div>
-                  <span className="text-[#a8aba0] text-[10px] uppercase block tracking-wider mb-0.5">Correo / Usuario:</span>
-                  <span className="text-white font-semibold select-all text-[13px]">admin@autotaller.pro</span>
-                </div>
-                <div>
-                  <span className="text-[#a8aba0] text-[10px] uppercase block tracking-wider mb-0.5">Contraseña:</span>
-                  <span className="text-white font-semibold select-all text-[13px]">autotaller2026!</span>
-                </div>
-              </div>
-
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-white/10 text-xs">
-                <span className="text-[11px] text-[#c1c3b7]">
-                  Acceso completo a las 7 pantallas de gestión del taller
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const adminAccount = DEMO_USERS.find((u) => u.role === 'admin') || {
-                      id: 'user-admin',
-                      name: 'Admin Central',
-                      email: 'admin@autotaller.pro',
-                      role: 'admin',
-                      roleLabel: 'Administrador del Sistema',
-                      initials: 'AD',
-                    };
-                    handleSelectDemoUser(adminAccount as AuthUser);
-                  }}
-                  className="bg-[#be401f] hover:bg-[#a63417] text-white text-[11px] font-semibold px-4 py-2 flex items-center gap-1.5 transition-colors cursor-pointer rounded-full"
-                >
-                  <span>Autocompletar Administrador</span>
-                  <span>⚡</span>
-                </button>
-              </div>
-            </div>
-
             {/* Acceso Rápido Demo (1 clic) */}
             <div className="mb-6 p-3.5 bg-[#e9e7df] border border-[#d4d3c9]">
               <span className="block text-[11px] font-semibold uppercase tracking-wider text-[#62645c] mb-2">
