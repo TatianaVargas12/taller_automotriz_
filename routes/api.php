@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\MechanicController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\OrderStatusController;
+use App\Http\Controllers\Api\V1\RecoveryController;
 use App\Http\Controllers\Api\V1\ServiceController;
 use App\Http\Controllers\Api\V1\VehicleController;
 use Illuminate\Support\Facades\Route;
@@ -28,6 +29,14 @@ Route::prefix('v1')->group(function () {
     // -------------------------------------------------------------
     Route::post('/auth/login', [AuthController::class, 'login'])->name('api.v1.auth.login');
     Route::get('/health', [HealthController::class, 'check'])->name('api.v1.health');
+
+    // Recuperación de Usuario y Contraseña (Canales Email y SMS)
+    Route::prefix('auth/recovery')->group(function () {
+        Route::post('/username', [RecoveryController::class, 'recoverUsername'])->name('api.v1.auth.recovery.username');
+        Route::post('/password/request', [RecoveryController::class, 'requestPasswordReset'])->name('api.v1.auth.recovery.password.request');
+        Route::post('/password/verify-code', [RecoveryController::class, 'verifyCode'])->name('api.v1.auth.recovery.password.verify');
+        Route::post('/password/reset', [RecoveryController::class, 'resetPassword'])->name('api.v1.auth.recovery.password.reset');
+    });
 
     // -------------------------------------------------------------
     // Rutas Protegidas por Autenticación Sanctum (auth:sanctum)

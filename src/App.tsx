@@ -369,6 +369,26 @@ export default function App() {
     }
   };
 
+  const handleUpdatePassword = (identifier: string, newPassword: string) => {
+    setAccounts((prev) => {
+      const updated = prev.map((acc) => {
+        const cleanPhone = (p?: string) => (p ? p.replace(/[\s\-\(\)]/g, '') : '');
+        const inputCleanPhone = identifier.replace(/[\s\-\(\)]/g, '');
+        if (
+          acc.email.toLowerCase() === identifier.toLowerCase() ||
+          acc.name.toLowerCase() === identifier.toLowerCase() ||
+          cleanPhone(acc.phone) === inputCleanPhone ||
+          (acc.username && acc.username.toLowerCase() === identifier.toLowerCase())
+        ) {
+          return { ...acc, password: newPassword };
+        }
+        return acc;
+      });
+      safeStorage.setJSON('autotaller_accounts', updated);
+      return updated;
+    });
+  };
+
   const handleRegister = (newUser: UserAccount) => {
     setAccounts((prev) => [newUser, ...prev]);
     setCurrentUser(newUser);
@@ -727,6 +747,7 @@ export default function App() {
               onNavigateToRegister={() => setAuthScreen('register')}
               onNavigateToClient={() => setViewMode('client')}
               accounts={accounts}
+              onUpdatePassword={handleUpdatePassword}
             />
           ) : (
             <RegisterView

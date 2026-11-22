@@ -320,6 +320,24 @@ CREATE TABLE `personal_access_tokens` (
   INDEX `personal_access_tokens_tokenable_type_tokenable_id_index` (`tokenable_type`, `tokenable_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ------------------------------------------------------------------------------
+-- Tabla 15: password_reset_tokens (Tokens y códigos SMS de un solo uso con hash)
+-- ------------------------------------------------------------------------------
+DROP TABLE IF EXISTS `password_reset_tokens`;
+CREATE TABLE `password_reset_tokens` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `identifier` VARCHAR(150) NOT NULL COMMENT 'Correo electrónico o número de teléfono',
+  `token` VARCHAR(64) NOT NULL COMMENT 'Hash criptográfico SHA-256 (nunca texto plano)',
+  `channel` VARCHAR(20) NOT NULL DEFAULT 'email' COMMENT 'email o phone',
+  `type` VARCHAR(20) NOT NULL DEFAULT 'password' COMMENT 'password o username',
+  `attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  `expires_at` TIMESTAMP NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `pwd_reset_identifier_index` (`identifier`),
+  INDEX `pwd_reset_lookup_index` (`identifier`, `channel`, `expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ==============================================================================
 -- SEMILLAS INICIALES (DML) - ROLES, USUARIO ADMINISTRADOR Y CATÁLOGO
 -- ==============================================================================

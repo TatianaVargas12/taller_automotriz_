@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 import { AuthUser, DEMO_ACCOUNTS, DEMO_USERS, UserAccount } from '../types/auth';
+import { AccountRecoveryModal } from '../components/AccountRecoveryModal';
 
 interface LoginViewProps {
   onLogin: (user: AuthUser) => void;
   onNavigateToRegister: () => void;
   onNavigateToClient?: () => void;
   accounts?: UserAccount[];
+  onUpdatePassword?: (identifier: string, newPassword: string) => void;
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({
@@ -14,12 +16,14 @@ export const LoginView: React.FC<LoginViewProps> = ({
   onNavigateToRegister,
   onNavigateToClient,
   accounts = DEMO_ACCOUNTS,
+  onUpdatePassword,
 }) => {
   const [email, setEmail] = useState('ana@ejemplo.com');
   const [password, setPassword] = useState('••••••••••••');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
 
   const handleSelectDemoUser = (user: AuthUser) => {
     setEmail(user.email);
@@ -291,9 +295,18 @@ export const LoginView: React.FC<LoginViewProps> = ({
               </div>
 
               <div>
-                <label className="block font-semibold text-[12px] text-[#242720] mb-1.5">
-                  Contraseña
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="block font-semibold text-[12px] text-[#242720]">
+                    Contraseña
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowRecoveryModal(true)}
+                    className="text-[12px] font-semibold text-[#be401f] hover:text-[#a63417] hover:underline cursor-pointer transition-colors"
+                  >
+                    ¿Olvidaste tu usuario o contraseña?
+                  </button>
+                </div>
                 <input
                   type="password"
                   value={password}
@@ -340,6 +353,23 @@ export const LoginView: React.FC<LoginViewProps> = ({
           <span>Mecánica general. Trato de tú a tú.</span>
         </footer>
       </main>
+
+      {/* Modal Flujo de Recuperación de Usuario y Contraseña (Email y SMS) */}
+      <AccountRecoveryModal
+        isOpen={showRecoveryModal}
+        onClose={() => setShowRecoveryModal(false)}
+        accounts={accounts}
+        onPasswordResetSuccess={(id, newPass) => {
+          if (onUpdatePassword) {
+            onUpdatePassword(id, newPass);
+          }
+          setPassword(newPass);
+          if (id.includes('@')) {
+            setEmail(id);
+          }
+          setSuccessMessage('¡Contraseña restablecida! Ya puedes iniciar sesión con tu nueva clave.');
+        }}
+      />
     </div>
   );
 };

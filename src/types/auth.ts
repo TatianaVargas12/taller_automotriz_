@@ -4,6 +4,7 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
+  username?: string;
   role: UserRole;
   roleLabel: string;
   initials: string;
@@ -26,6 +27,7 @@ export const DEMO_USERS: AuthUser[] = [
     id: 'user-1',
     name: 'Laura Giménez',
     email: 'laura.gimenez@autotaller.pro',
+    username: 'laura.gimenez',
     role: 'supervisor',
     roleLabel: 'Jefa de Taller & Servicio',
     initials: 'LG',
@@ -42,6 +44,7 @@ export const DEMO_USERS: AuthUser[] = [
     id: 'user-2',
     name: 'Mateo Castellanos',
     email: 'mateo.c@autotaller.pro',
+    username: 'mateo.c',
     role: 'technician',
     roleLabel: 'Master Tech ASE L1',
     initials: 'MC',
@@ -58,6 +61,7 @@ export const DEMO_USERS: AuthUser[] = [
     id: 'user-3',
     name: 'Roberto Silva',
     email: 'roberto.s@autotaller.pro',
+    username: 'roberto.s',
     role: 'advisor',
     roleLabel: 'Asesor Comercial & Flotas',
     initials: 'RS',
@@ -74,6 +78,7 @@ export const DEMO_USERS: AuthUser[] = [
     id: 'user-4',
     name: 'Admin Central',
     email: 'admin@autotaller.pro',
+    username: 'admin',
     role: 'admin',
     roleLabel: 'Administrador del Sistema',
     initials: 'AD',
