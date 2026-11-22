@@ -9,7 +9,6 @@ interface AdminDashboardViewProps {
   onSelectOrder?: (orderId: string) => void;
   onLogout: () => void;
   onNavigateToScreen?: (screen: string) => void;
-  onNavigateToProfile?: () => void;
   initialNav?: string;
 }
 
@@ -20,7 +19,6 @@ export function AdminDashboardView({
   onSelectOrder,
   onLogout,
   onNavigateToScreen,
-  onNavigateToProfile,
   initialNav = '01',
 }: AdminDashboardViewProps) {
   // Navigation tabs: '01' (Resumen), '02' (Citas), '03' (Órdenes), '04' (Clientes), '05' (Presupuestos), '06' (Facturación), 'ajustes'
@@ -538,21 +536,14 @@ export function AdminDashboardView({
               <div className="h-[26px] w-px bg-[#d4d3c9] hidden sm:block"></div>
 
               {/* Admin Profile */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (onNavigateToProfile) onNavigateToProfile();
-                }}
-                title="Ver y editar perfil de usuario"
-                className="flex flex-col text-right hover:opacity-80 transition-opacity cursor-pointer group"
-              >
-                <span className="text-[13px] font-semibold text-[#242720] group-hover:text-[#be401f] transition-colors leading-tight">
+              <div className="flex flex-col text-right">
+                <span className="text-[13px] font-semibold text-[#242720] leading-tight">
                   {currentUser?.name || 'Administrador'}
                 </span>
                 <span className="text-[10px] text-[#62645c] leading-tight mt-0.5">
-                  Acceso completo · Mi perfil
+                  Acceso completo
                 </span>
-              </button>
+              </div>
             </div>
           </header>
 

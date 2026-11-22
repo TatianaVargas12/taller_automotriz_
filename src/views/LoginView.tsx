@@ -6,6 +6,7 @@ import { AccountRecoveryModal } from '../components/AccountRecoveryModal';
 interface LoginViewProps {
   onLogin: (user: AuthUser) => void;
   onNavigateToRegister: () => void;
+  onNavigateToRecovery?: () => void;
   onNavigateToClient?: () => void;
   accounts?: UserAccount[];
   onUpdatePassword?: (identifier: string, newPassword: string) => void;
@@ -14,6 +15,7 @@ interface LoginViewProps {
 export const LoginView: React.FC<LoginViewProps> = ({
   onLogin,
   onNavigateToRegister,
+  onNavigateToRecovery,
   onNavigateToClient,
   accounts = DEMO_ACCOUNTS,
   onUpdatePassword,
@@ -301,7 +303,13 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   </span>
                   <button
                     type="button"
-                    onClick={() => setShowRecoveryModal(true)}
+                    onClick={() => {
+                      if (onNavigateToRecovery) {
+                        onNavigateToRecovery();
+                      } else {
+                        setShowRecoveryModal(true);
+                      }
+                    }}
                     className="text-[12px] font-semibold text-[#be401f] hover:text-[#a63417] hover:underline cursor-pointer transition-colors"
                   >
                     ¿Olvidaste tu usuario o contraseña?

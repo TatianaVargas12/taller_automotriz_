@@ -26,6 +26,7 @@ import { CustomersView } from './views/CustomersView';
 import { ProfileView } from './views/ProfileView';
 import { LoginView } from './views/LoginView';
 import { RegisterView } from './views/RegisterView';
+import { RecoveryView } from './views/RecoveryView';
 import { ClientPortalView } from './views/ClientPortalView';
 import { AdminDashboardView } from './views/AdminDashboardView';
 import { WorkOrderDrawer } from './components/WorkOrderDrawer';
@@ -55,11 +56,12 @@ export default function App() {
     return safeStorage.getJSON<AuthUser | null>('autotaller_current_user', DEMO_ACCOUNTS[0]);
   });
 
-  const [authScreen, setAuthScreen] = useState<'login' | 'register'>(() => {
+  const [authScreen, setAuthScreen] = useState<'login' | 'register' | 'recovery'>(() => {
     const hash = window.location.hash.replace('#', '').toLowerCase();
     if (hash === 'register') return 'register';
+    if (hash === 'recovery' || hash === 'recuperar' || hash === 'olvide') return 'recovery';
     const saved = safeStorage.getItem('autotaller_auth_screen');
-    return saved === 'register' ? 'register' : 'login';
+    return saved === 'register' ? 'register' : saved === 'recovery' ? 'recovery' : 'login';
   });
 
   const [accounts, setAccounts] = useState<UserAccount[]>(DEMO_ACCOUNTS);
@@ -85,7 +87,6 @@ export default function App() {
     } else {
       window.history.replaceState(null, '', `#${viewMode}`);
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [viewMode, authScreen]);
 
   // Persist user session across reloads
@@ -118,6 +119,9 @@ export default function App() {
         setViewMode('auth');
       } else if (hash === 'register') {
         setAuthScreen('register');
+        setViewMode('auth');
+      } else if (hash === 'recovery' || hash === 'recuperar' || hash === 'olvide') {
+        setAuthScreen('recovery');
         setViewMode('auth');
       } else if (hash === 'operations' || hash === 'bahias') {
         setViewMode('operations');
@@ -736,27 +740,39 @@ export default function App() {
             setActiveScreen(scr as ScreenRoute);
             setViewMode('operations');
           }}
-          onNavigateToProfile={() => setViewMode('profile')}
         />
       )}
 
-      {/* VIEW 3: AUTH (Login & Register Views) */}
+      {/* VIEW 3: AUTH (Login, Register & Recovery Views) */}
       {viewMode === 'auth' && (
         <div className="min-h-screen w-full flex">
-          {authScreen === 'login' ? (
+          {authScreen === 'login' && (
             <LoginView
               onLogin={handleLogin}
               onNavigateToRegister={() => setAuthScreen('register')}
+              onNavigateToRecovery={() => setAuthScreen('recovery')}
               onNavigateToClient={() => setViewMode('client')}
               accounts={accounts}
               onUpdatePassword={handleUpdatePassword}
             />
-          ) : (
+          )}
+          {authScreen === 'register' && (
             <RegisterView
               onRegister={handleRegister}
               onNavigateToLogin={() => setAuthScreen('login')}
               onNavigateToClient={() => setViewMode('client')}
               accounts={accounts}
+            />
+          )}
+          {authScreen === 'recovery' && (
+            <RecoveryView
+              onNavigateToLogin={() => setAuthScreen('login')}
+              onNavigateToClient={() => setViewMode('client')}
+              accounts={accounts}
+              onPasswordResetSuccess={(id, newPass) => {
+                handleUpdatePassword(id, newPass);
+                setAuthScreen('login');
+              }}
             />
           )}
         </div>
