@@ -4585,23 +4585,36 @@ body { font-family: 'Inter', sans-serif; }
               </div>
             </div>
 
-            <!-- PASO 2: Elegir Canal -->
+                        <!-- PASO 2: Elegir Canal -->
             <div id="card-rec-step-channel" class="hidden space-y-4">
-              <button
-                type="button"
-                onclick="showCardRecoveryStep('type')"
-                class="text-xs font-semibold text-[#62645c] hover:text-[#242720] flex items-center gap-1 cursor-pointer"
-              >
-                ← Cambiar opción
-              </button>
-              <span class="block text-xs font-semibold text-[#62645c] uppercase tracking-wider mb-2">
-                Paso 2 de 3: Elige el canal de entrega
-              </span>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="flex items-center justify-between">
+                <button
+                  type="button"
+                  onclick="showCardRecoveryStep('type')"
+                  class="text-xs font-semibold text-[#62645c] hover:text-[#242720] flex items-center gap-1 cursor-pointer"
+                >
+                  ← Cambiar opción
+                </button>
+                <span id="card-rec-selected-type-badge" class="bg-[#f3f1ea] border border-[#d4d3c9] text-[#be401f] text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                  🔑 Restablecer Contraseña
+                </span>
+              </div>
+              <div>
+                <span class="block text-xs font-semibold text-[#be401f] uppercase tracking-wider mb-1">
+                  PASO 2 DE 3 · CANAL DE ENTREGA
+                </span>
+                <h3 class="font-condensed font-bold text-3xl text-[#242720] uppercase leading-tight">
+                  Elige el medio de recepción
+                </h3>
+                <p id="card-rec-channel-subtext" class="text-sm text-[#62645c] mt-1">
+                  ¿Por qué medio prefieres recibir las instrucciones de restablecimiento?
+                </p>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                 <button
                   type="button"
                   onclick="selectCardRecoveryChannel('email')"
-                  class="p-5 border-2 border-[#d4d3c9] hover:border-[#be401f] hover:bg-[#fbfaf6] text-left transition-all cursor-pointer flex flex-col justify-between h-[150px] group"
+                  class="p-5 border-2 border-[#d4d3c9] hover:border-[#be401f] hover:bg-[#fbfaf6] text-left transition-all cursor-pointer flex flex-col justify-between h-[155px] group"
                 >
                   <div>
                     <div class="w-9 h-9 rounded-full bg-[#f3f1ea] group-hover:bg-[#be401f] group-hover:text-white text-[#242720] flex items-center justify-center transition-colors mb-2 text-lg">
@@ -4610,8 +4623,8 @@ body { font-family: 'Inter', sans-serif; }
                     <span class="font-bold text-base text-[#242720] group-hover:text-[#be401f] transition-colors block">
                       Correo Electrónico
                     </span>
-                    <span class="text-xs text-[#62645c] mt-1 block">
-                      Recibe las instrucciones en tu buzón.
+                    <span class="text-xs text-[#62645c] mt-1 block leading-snug">
+                      Recibe las instrucciones en tu buzón de correo.
                     </span>
                   </div>
                   <span class="text-xs font-semibold text-[#be401f]">Elegir Correo →</span>
@@ -4620,7 +4633,7 @@ body { font-family: 'Inter', sans-serif; }
                 <button
                   type="button"
                   onclick="selectCardRecoveryChannel('phone')"
-                  class="p-5 border-2 border-[#d4d3c9] hover:border-[#be401f] hover:bg-[#fbfaf6] text-left transition-all cursor-pointer flex flex-col justify-between h-[150px] group"
+                  class="p-5 border-2 border-[#d4d3c9] hover:border-[#be401f] hover:bg-[#fbfaf6] text-left transition-all cursor-pointer flex flex-col justify-between h-[155px] group"
                 >
                   <div>
                     <div class="w-9 h-9 rounded-full bg-[#f3f1ea] group-hover:bg-[#be401f] group-hover:text-white text-[#242720] flex items-center justify-center transition-colors mb-2 text-lg">
@@ -4629,7 +4642,7 @@ body { font-family: 'Inter', sans-serif; }
                     <span class="font-bold text-base text-[#242720] group-hover:text-[#be401f] transition-colors block">
                       Mensaje de Texto (SMS)
                     </span>
-                    <span class="text-xs text-[#62645c] mt-1 block">
+                    <span class="text-xs text-[#62645c] mt-1 block leading-snug">
                       Código instantáneo de 6 dígitos en tu móvil.
                     </span>
                   </div>
@@ -6215,6 +6228,16 @@ body { font-family: 'Inter', sans-serif; }
 
     function selectCardRecoveryType(type) {
       cardRecType = type;
+      const badge = document.getElementById('card-rec-selected-type-badge');
+      const sub = document.getElementById('card-rec-channel-subtext');
+      if (badge) {
+        badge.textContent = type === 'username' ? '👤 Recuperar Usuario' : '🔑 Restablecer Contraseña';
+      }
+      if (sub) {
+        sub.textContent = type === 'username'
+          ? '¿Dónde deseas recibir el recordatorio de tu nombre de usuario registrado?'
+          : '¿Por qué medio prefieres recibir las instrucciones de restablecimiento?';
+      }
       showCardRecoveryStep('channel');
     }
 
