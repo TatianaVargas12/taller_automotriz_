@@ -6172,7 +6172,9 @@ body { font-family: 'Inter', sans-serif; }
     let recAttemptsLeft = 3;
 
     
-    // ========================================================
+    })();
+
+// ========================================================
     // LOGICA DE PANTALLA DE RECUPERACIÓN (auth-recovery-card)
     // ========================================================
     let cardRecType = 'password';
@@ -6639,7 +6641,37 @@ body { font-family: 'Inter', sans-serif; }
       showRecoveryStep('final-success');
     }
 
-    })();
+    
+
+    // Exponer funciones de recuperación en el objeto global window
+    window.resetCardRecovery = resetCardRecovery;
+    window.showCardRecoveryStep = showCardRecoveryStep;
+    window.hideCardRecAlerts = hideCardRecAlerts;
+    window.showCardRecError = showCardRecError;
+    window.showCardRecInfo = showCardRecInfo;
+    window.selectCardRecoveryType = selectCardRecoveryType;
+    window.selectCardRecoveryChannel = selectCardRecoveryChannel;
+    window.fillCardRecDemo = fillCardRecDemo;
+    window.submitCardRecoveryIdentifier = submitCardRecoveryIdentifier;
+    window.updateCardTimerDisplay = updateCardTimerDisplay;
+    window.autofillCardRecoveryCode = autofillCardRecoveryCode;
+    window.resendCardRecoveryCode = resendCardRecoveryCode;
+    window.verifyCardRecoveryCode = verifyCardRecoveryCode;
+    window.checkCardPasswordComplexity = checkCardPasswordComplexity;
+    window.setComplexityPill = setComplexityPill;
+    window.saveCardNewPassword = saveCardNewPassword;
+    window.openRecoveryModal = openRecoveryModal;
+    window.closeRecoveryModal = closeRecoveryModal;
+    window.showRecoveryStep = showRecoveryStep;
+    window.selectRecoveryType = selectRecoveryType;
+    window.selectRecoveryChannel = selectRecoveryChannel;
+    window.submitRecoveryIdentifier = submitRecoveryIdentifier;
+    window.autofillRecoveryCode = autofillRecoveryCode;
+    window.resendRecoveryCode = resendRecoveryCode;
+    window.verifyRecoveryCode = verifyRecoveryCode;
+    window.saveNewRecoveryPassword = saveNewRecoveryPassword;
+
+
   </script>
 </body>
 </html>
