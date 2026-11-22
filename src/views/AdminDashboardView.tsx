@@ -70,6 +70,41 @@ export function AdminDashboardView({
   const [showTechDropdown, setShowTechDropdown] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
+  // Fecha actual dinámica y auto-actualizable
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDate(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const daysUpper = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
+  const daysTitle = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const monthsUpper = [
+    'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+    'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
+  ];
+  const monthsLower = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+  ];
+
+  const dayOfWeekUpper = daysUpper[currentDate.getDay()];
+  const dayOfWeekTitle = daysTitle[currentDate.getDay()];
+  const dayNum = currentDate.getDate();
+  const monthUpper = monthsUpper[currentDate.getMonth()];
+  const monthLower = monthsLower[currentDate.getMonth()];
+  const yearNum = currentDate.getFullYear();
+
+  // Ejemplo: "Lunes 16 de noviembre de 2026"
+  const formattedFullDate = `${dayOfWeekTitle} ${dayNum} de ${monthLower} de ${yearNum}`;
+  // Ejemplo: "LUNES, 16 DE NOVIEMBRE DE 2026"
+  const formattedHeaderDate = `${dayOfWeekUpper}, ${dayNum} DE ${monthUpper} DE ${yearNum}`;
+  // Ejemplo: "LUNES 16 DE NOVIEMBRE"
+  const formattedShortDate = `${dayOfWeekUpper} ${dayNum} DE ${monthUpper}`;
+
   // States for 02 Citas
   const [citasPeriod, setCitasPeriod] = useState<'dia' | 'semana' | 'mes'>(() => {
     const saved = safeStorage.getItem('autotaller_citas_period');
@@ -524,7 +559,7 @@ export function AdminDashboardView({
                   <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                     <div>
                       <p className="text-[#be401f] text-[11px] font-semibold tracking-[0.08em] uppercase mb-1">
-                        LUNES, 16 DE NOVIEMBRE DE 2026
+                        {formattedHeaderDate}
                       </p>
                       <h2 className="font-['Barlow_Condensed',sans-serif] font-bold text-[#242720] text-3xl sm:text-[44px] leading-[46px] tracking-tight uppercase">
                         EL TALLER, DE UN VISTAZO.
@@ -823,7 +858,7 @@ export function AdminDashboardView({
                     <div className="flex items-center justify-between pb-4 border-b border-[#deded4] mb-4">
                       <div>
                         <h3 className="font-['Barlow_Condensed',sans-serif] font-bold text-[25px] text-[#242720]">
-                          LUNES 16 DE NOVIEMBRE
+                          {formattedShortDate}
                         </h3>
                         <p className="text-xs text-[#62645c]">‹ &nbsp; Hoy &nbsp; ›</p>
                       </div>
@@ -1741,12 +1776,12 @@ export function AdminDashboardView({
             )}
 
             {/* Footer de estado oficial */}
-            <div className="flex items-center justify-between text-[#62645c] pt-4 text-[11px]">
+            <div className="flex items-center justify-between text-[#62645c] pt-4 text-[11px] border-t border-[#d4d3c9] mt-8">
               <span className="font-medium tracking-wide">
-                AUTOTALLER PRO &nbsp;/&nbsp; ADMINISTRACIÓN
+                AUTOTALLER PRO &nbsp;/&nbsp; ADMINISTRACIÓN DEL TALLER
               </span>
               <span>
-                Datos de ejemplo · 16 nov. 2026
+                {formattedFullDate} · Conexión segura
               </span>
             </div>
           </main>
