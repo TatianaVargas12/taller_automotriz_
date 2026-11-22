@@ -40,7 +40,7 @@ export function ClientPortalView({
     },
     {
       num: '03',
-      src: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&w=1200&q=80',
+      src: 'https://images.unsplash.com/photo-1613214149922-f1809c99b414?auto=format&fit=crop&w=1200&q=80',
       caption: '03 / ELEVADORES Y DIAGNÓSTICO ESTRUCTURAL.',
       alt: 'Vehículo montado en elevador hidráulico en bahía de servicio',
     },
@@ -273,6 +273,13 @@ export function ClientPortalView({
                   key={slide.num}
                   src={slide.src}
                   alt={slide.alt}
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    const fallback = `/images/hero_slide_${parseInt(slide.num, 10)}.jpg`;
+                    if (!target.src.endsWith(fallback)) {
+                      target.src = fallback;
+                    }
+                  }}
                   className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out ${idx === heroSlide ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none z-0'
                     }`}
                 />
