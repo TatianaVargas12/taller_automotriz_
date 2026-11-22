@@ -145,23 +145,12 @@ export function ClientPortalView({
                 <button
                   type="button"
                   onClick={() => {
-                    // Si el usuario es administrador, no cambia de comportamiento ni redirige
-                    if (currentUser.role === 'admin') {
-                      return;
-                    }
                     if (onNavigateToProfile) {
                       onNavigateToProfile();
                     }
                   }}
-                  title={
-                    currentUser.role === 'admin'
-                      ? `Sesión activa: ${currentUser.name}`
-                      : 'Ver y modificar mi perfil'
-                  }
-                  className={`flex items-center gap-2 bg-[#d9381e] px-4 py-1.5 border border-[#b82d17] text-xs font-bold text-white rounded-full shadow-xs transition-colors select-none ${currentUser.role === 'admin'
-                    ? 'cursor-default'
-                    : 'cursor-pointer hover:bg-[#c42e15] active:scale-[0.99]'
-                    }`}
+                  title="Ver y modificar mi perfil"
+                  className="flex items-center gap-2 bg-[#d9381e] hover:bg-[#c42e15] active:scale-[0.99] px-4 py-1.5 border border-[#b82d17] text-xs font-bold text-white rounded-full shadow-xs transition-colors cursor-pointer select-none"
                 >
                   <span
                     className="w-2 h-2 rounded-full bg-white shadow-xs shrink-0"

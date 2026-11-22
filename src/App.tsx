@@ -85,6 +85,7 @@ export default function App() {
     } else {
       window.history.replaceState(null, '', `#${viewMode}`);
     }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [viewMode, authScreen]);
 
   // Persist user session across reloads
@@ -735,6 +736,7 @@ export default function App() {
             setActiveScreen(scr as ScreenRoute);
             setViewMode('operations');
           }}
+          onNavigateToProfile={() => setViewMode('profile')}
         />
       )}
 
