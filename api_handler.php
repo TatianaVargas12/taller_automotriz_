@@ -19,6 +19,25 @@ function getDbConnection(): ?PDO {
         ]);
         return $pdo;
     } catch (Exception $e) {
+        // Si la base de datos no existe en el XAMPP de la otra persona, auto-importar schema.sql
+        try {
+            $rootPdo = new PDO('mysql:host=127.0.0.1;port=3306;charset=utf8mb4', 'root', '', [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            ]);
+            $schemaFile = __DIR__ . '/database/schema.sql';
+            if (file_exists($schemaFile)) {
+                $sql = file_get_contents($schemaFile);
+                $rootPdo->exec($sql);
+                $pdo = new PDO('mysql:host=127.0.0.1;port=3306;dbname=taller_automotriz;charset=utf8mb4', 'root', '', [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                ]);
+                return $pdo;
+            }
+        } catch (Exception $inner) {
+            // Falla controlada si MySQL no está encendido o tiene credenciales personalizadas
+        }
         return null;
     }
 }
